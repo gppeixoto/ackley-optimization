@@ -15,4 +15,4 @@ class Ackley:
             (1./self.N) * \
             sum(map(lambda nb: np.cos(self.c3 * nb), x))
             )
-        return part1 + part2 + self.c1 + 1
+        return part1 + part2 + self.c1 + np.exp(1)
