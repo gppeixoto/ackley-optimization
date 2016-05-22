@@ -1,12 +1,11 @@
 import numpy as np
-from numpy.random import randn
-from utils import Ackley
+import utils
 
-class EvolutionStrategy:
-    def __init__(self, generations=5000, population_size=1, mutation_step=0.1, adjust_mutation_constant=0.8):
+class TwoMemberEvolutionStrategy:
+    def __init__(self, generations=200000, population_size=1, mutation_step=10, adjust_mutation_constant=0.8):
         self.generations = generations
         self.population_size = population_size
-        self.f_ackley = Ackley().f_x
+        self.f_ackley = utils.Ackley().f_x
         self.cromossome = None
         self.mutation_step = mutation_step
         self.adjust_mutation_constant = adjust_mutation_constant
@@ -28,13 +27,13 @@ class EvolutionStrategy:
         return np.random.normal(0, self.mutation_step, 30)
 
     def get_success_probability(self):
-        return self.num_successful_mutations / float(self.num_mutations)
+        return self.num_successful_mutations / float(self.num_mutations) if self.num_mutations > 0 else 0.0 
 
     """
     Fitness function
     """
     def fitness(self, cromossome):
-        return -1.*abs(self.f_ackley(cromossome))
+        return self.f_ackley(cromossome)
 
     def adjust_mutation_step(self):
         ps = self.get_success_probability()
@@ -48,12 +47,12 @@ class EvolutionStrategy:
             print "mutation_step: %.4f" % self.mutation_step
 
     def apply_mutation(self):
-        cromossome_prime = self.cromossome + self.get_mutation_vector()
+        self.adjust_mutation_step()
+        cromossome_prime = utils.sum_vectors(self.cromossome, self.get_mutation_vector())
         self.num_mutations += 1
-        if self.fitness(self.cromossome) < self.fitness(cromossome_prime):
+        if self.fitness(cromossome_prime) < self.fitness(self.cromossome):
             self.cromossome = cromossome_prime
             self.num_successful_mutations += 1
-        self.adjust_mutation_step()
 
     def run(self, verbose=0):
         self.verbose = verbose
@@ -73,6 +72,3 @@ class EvolutionStrategy:
                 print "Ackley(x): %.5f" % self.f_ackley(self.cromossome)
             history.append((self.cromossome, self.f_ackley(self.cromossome)))
         return history
-
-# es = EvolutionStrategy()
-# es.run(verbose = 1)

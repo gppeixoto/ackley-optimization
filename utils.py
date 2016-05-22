@@ -16,3 +16,14 @@ class Ackley:
             sum(map(lambda nb: np.cos(self.c3 * nb), x))
             )
         return part1 + part2 + self.c1 + np.exp(1)
+
+def sum_vectors(x, z):
+    y = []
+    for x_i, z_i in zip(x, z):
+        x_prime_i = x_i + z_i
+        if x_prime_i > 15.0:
+            x_prime_i = 15.0
+        elif x_prime_i < -15.0:
+            x_prime_i = -15.0
+        y.append(x_prime_i)
+    return y
