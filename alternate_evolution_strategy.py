@@ -2,9 +2,11 @@ import numpy as np
 import random
 import utils
 from operator import itemgetter
+import time
 
 class EvolutionStrategy:
-    def __init__(self, generations=200000, population_size=30, num_children=200):
+    def __init__(self, generations=200000, population_size=30,
+                 num_children=200, stop_criteria=1e-5):
         self.generations = generations
         self.population_size = population_size
         self.num_children = num_children
@@ -16,6 +18,7 @@ class EvolutionStrategy:
         self.learning_rate = float(1) / np.sqrt(self.dimensions)
         self.verbose = 0
         self.delta = 1e-8
+        self.stop_criteria = stop_criteria
 
     def print_cromossome(self, cromossome):
         print '[' + ','.join(["%.2f" % nb for nb in cromossome]) + ']'
@@ -32,7 +35,7 @@ class EvolutionStrategy:
 
     """
     Init mutation steps with lognormal distribution
-    """        
+    """
     def adjust_mutation_steps(self):
         for i in xrange(self.num_children):
             new_step = self.mutation_steps[i] * np.exp(self.learning_rate * np.random.normal())
@@ -87,16 +90,28 @@ class EvolutionStrategy:
         self.verbose = verbose
         self.init_population()
         gen = 0
+        last_500 = np.inf
         history = []
-        while gen < self.generations:
+        t0 = time.time()
+        while gen < self.generations and last_500 > self.stop_criteria:
             gen += 1
             self.get_next_generation()
             self.apply_mutations()
             self.selection()
             best_individual = self.population[0]
-            if self.verbose == 1:
+            if self.verbose == 1 and gen % 100 == 0:
                 print "gen: %d" % gen
+                print "time elapsed: %.0fs" % ((time.time()-t0))
                 self.print_cromossome(best_individual)
                 print "Ackley(x): %.15f" % self.f_ackley(best_individual)
             history.append((best_individual, self.f_ackley(best_individual)))
+            if gen != 0 and gen % 500 == 0:
+                last_500 = np.abs(history[gen-1][1]-history[gen-500][1])
+                if verbose == 1:
+                    print "\tfitness difference within last 500 generations: %.10f" % last_500
+        print "time to convergence: %.0fs" % ((time.time()-t0))
         return history
+
+if __name__ == "__main__":
+    es = EvolutionStrategy()
+    history = es.run(verbose=1)
