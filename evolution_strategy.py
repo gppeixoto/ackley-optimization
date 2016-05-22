@@ -3,14 +3,16 @@ from numpy.random import randn
 from utils import Ackley
 
 class EvolutionStrategy:
-    def __init__(self, generations=50, population_size=1):
+    def __init__(self, generations=5000, population_size=1, mutation_step=0.1, adjust_mutation_constant=0.8):
         self.generations = generations
         self.population_size = population_size
         self.f_ackley = Ackley().f_x
         self.cromossome = None
-        self.mutation_step = .1
-        self.adjust_mutation_constant = .8
+        self.mutation_step = mutation_step
+        self.adjust_mutation_constant = adjust_mutation_constant
         self.success_rate = .2
+        self.num_mutations = 0
+        self.num_successful_mutations = 0
         self.verbose = 0
 
     def print_cromossome(self):
@@ -25,38 +27,52 @@ class EvolutionStrategy:
     def get_mutation_vector(self):
         return np.random.normal(0, self.mutation_step, 30)
 
-    """
-    Identity function
-    """
-    def fitness(self, nb):
-        return -1.*abs(nb)
+    def get_success_probability(self):
+        return self.num_successful_mutations / float(self.num_mutations)
 
-    def adjust_mutation_step(self, ps):
+    """
+    Fitness function
+    """
+    def fitness(self, cromossome):
+        return -1.*abs(self.f_ackley(cromossome))
+
+    def adjust_mutation_step(self):
+        ps = self.get_success_probability()
+        if self.verbose == 1:
+            print "ps: %.4f" % ps
         if ps > self.success_rate:
             self.mutation_step /= self.adjust_mutation_constant
         elif ps < self.success_rate:
             self.mutation_step *= self.adjust_mutation_constant
+        if self.verbose == 1:
+            print "mutation_step: %.4f" % self.mutation_step
 
     def apply_mutation(self):
         cromossome_prime = self.cromossome + self.get_mutation_vector()
-        ps = 0
-        for i, x_i_prime in enumerate(cromossome_prime):
-            x_i = self.cromossome[i]
-            if self.fitness(x_i_prime) < self.fitness(x_i):
-                cromossome_prime[i] = x_i
-                ps += 1
-        ps /= (1. * cromossome_prime.size)
-        self.adjust_mutation_step(ps)
-        self.cromossome = cromossome_prime
+        self.num_mutations += 1
+        if self.fitness(self.cromossome) < self.fitness(cromossome_prime):
+            self.cromossome = cromossome_prime
+            self.num_successful_mutations += 1
+        self.adjust_mutation_step()
 
     def run(self, verbose=0):
         self.verbose = verbose
         self.init_cromossome()
         gen = 0
+        history = [(self.cromossome, self.f_ackley(self.cromossome))]
+        if self.verbose == 1:
+            print "gen: %d" % gen
+            self.print_cromossome()
+            print "Ackley(x): %.5f" % self.f_ackley(self.cromossome)
         while gen < self.generations:
+            gen += 1
             self.apply_mutation()
             if self.verbose == 1:
                 print "gen: %d" % gen
                 self.print_cromossome()
-            gen += 1
-        # TODO: finish run implementation
+                print "Ackley(x): %.5f" % self.f_ackley(self.cromossome)
+            history.append((self.cromossome, self.f_ackley(self.cromossome)))
+        return history
+
+# es = EvolutionStrategy()
+# es.run(verbose = 1)
