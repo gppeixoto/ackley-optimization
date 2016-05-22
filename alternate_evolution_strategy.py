@@ -6,7 +6,8 @@ import time
 
 class EvolutionStrategy:
     def __init__(self, generations=200000, population_size=30,
-                 num_children=200, stop_criteria=1e-5):
+                 num_children=200, stop_criteria=1e-5,
+                 strategy="local_discrete_recombine"):
         self.generations = generations
         self.population_size = population_size
         self.num_children = num_children
@@ -14,14 +15,15 @@ class EvolutionStrategy:
         self.dimensions = 30
         self.f_ackley = utils.Ackley().f_x
         self.population = []
-        self.mutation_steps = [1.0] * self.num_children
-        self.learning_rate = float(1) / np.sqrt(self.dimensions)
+        self.mutation_steps = np.ones(self.num_children) #[1.0] * self.num_children
+        self.learning_rate = 1. / np.sqrt(self.dimensions)
         self.verbose = 0
         self.delta = 1e-8
         self.stop_criteria = stop_criteria
+        self.strategy = strategy
 
     def print_cromossome(self, cromossome):
-        print '[' + ','.join(["%.2f" % nb for nb in cromossome]) + ']'
+        print '[' + ','.join(["%.5f" % nb for nb in cromossome]) + ']'
 
     """
     Init cromossomes with uniform distribution
@@ -58,17 +60,28 @@ class EvolutionStrategy:
         parent_2 = random.choice(self.population)
         return parent_1, parent_2
 
-    def recombine(self, parent_1, parent_2):
+    def local_discrete_recombine(self, parent_1, parent_2):
         child = []
         for pair in zip(parent_1, parent_2):
             child.append(random.choice(pair))
+        return child
+
+    def local_intermediate_recombine(self, parent_1, parent_2):
+        child = []
+        for pair in zip(parent_1, parent_2):
+            mean = (pair[0]+pair[1]+.0)/2.
+            child.append(mean)
         return child
 
     def get_next_generation(self):
         self.children = []
         for i in xrange(self.num_children):
             parent_1, parent_2 = self.select_parents()
-            self.children.append(self.recombine(parent_1, parent_2))
+            if self.strategy == "local_discrete_recombine":
+                child = self.local_discrete_recombine(parent_1, parent_2)
+            elif self.strategy == "local_intermediate_recombine":
+                child = self.local_intermediate_recombine(parent_1, parent_2)
+            self.children.append(child)
 
     def apply_mutations(self):
         self.adjust_mutation_steps()
@@ -113,5 +126,5 @@ class EvolutionStrategy:
         return history
 
 if __name__ == "__main__":
-    es = EvolutionStrategy()
+    es = EvolutionStrategy(strategy="local_intermediate_recombine")
     history = es.run(verbose=1)
