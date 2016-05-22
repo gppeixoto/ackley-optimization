@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import utils
 
 class TwoMemberEvolutionStrategy:
@@ -27,7 +28,7 @@ class TwoMemberEvolutionStrategy:
         return np.random.normal(0, self.mutation_step, 30)
 
     def get_success_probability(self):
-        return self.num_successful_mutations / float(self.num_mutations) if self.num_mutations > 0 else 0.0 
+        return self.num_successful_mutations / float(self.num_mutations) if self.num_mutations > 0 else 0.0
 
     """
     Fitness function
@@ -59,16 +60,19 @@ class TwoMemberEvolutionStrategy:
         self.init_cromossome()
         gen = 0
         history = [(self.cromossome, self.f_ackley(self.cromossome))]
-        if self.verbose == 1:
+        t0 = time.time()
+        if self.verbose == 1 and gen != 0 and gen % 500 == 0:
             print "gen: %d" % gen
             self.print_cromossome()
             print "Ackley(x): %.5f" % self.f_ackley(self.cromossome)
         while gen < self.generations:
             gen += 1
             self.apply_mutation()
-            if self.verbose == 1:
+            if self.verbose == 1 and gen != 0 and gen % 500 == 0:
                 print "gen: %d" % gen
                 self.print_cromossome()
                 print "Ackley(x): %.5f" % self.f_ackley(self.cromossome)
             history.append((self.cromossome, self.f_ackley(self.cromossome)))
-        return history
+        elapsed_time = ((time.time()-t0))
+        print "time to stop: %.0fs" % elapsed_time
+        return (history, elapsed_time)
