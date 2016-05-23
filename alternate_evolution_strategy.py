@@ -5,9 +5,9 @@ from operator import itemgetter
 import time
 
 class EvolutionStrategy:
-    def __init__(self, generations=200000, population_size=30,
-                 num_children=200, stop_criteria=1e-5,
-                 strategy="local_discrete_recombine"):
+    def __init__(self, generations=200000, population_size=30,num_children=200,
+                 stop_criteria=1e-5, recombination_strategy="discrete_recombination",
+                 learning_rate=(1./np.sqrt(30.))):
         self.generations = generations
         self.population_size = population_size
         self.num_children = num_children
@@ -16,11 +16,11 @@ class EvolutionStrategy:
         self.f_ackley = utils.Ackley().f_x
         self.population = []
         self.mutation_steps = np.ones(self.num_children) #[1.0] * self.num_children
-        self.learning_rate = 1. / np.sqrt(self.dimensions)
+        self.learning_rate = learning_rate
         self.verbose = 0
         self.delta = 1e-8
         self.stop_criteria = stop_criteria
-        self.strategy = strategy
+        self.recombination_strategy = recombination_strategy
 
     def print_cromossome(self, cromossome):
         print '[' + ','.join(["%.5f" % nb for nb in cromossome]) + ']'
@@ -60,13 +60,13 @@ class EvolutionStrategy:
         parent_2 = random.choice(self.population)
         return parent_1, parent_2
 
-    def local_discrete_recombine(self, parent_1, parent_2):
+    def discrete_recombination(self, parent_1, parent_2):
         child = []
         for pair in zip(parent_1, parent_2):
             child.append(random.choice(pair))
         return child
 
-    def local_intermediate_recombine(self, parent_1, parent_2):
+    def intermediate_recombine(self, parent_1, parent_2):
         child = []
         for pair in zip(parent_1, parent_2):
             mean = (pair[0]+pair[1]+.0)/2.
@@ -77,10 +77,10 @@ class EvolutionStrategy:
         self.children = []
         for i in xrange(self.num_children):
             parent_1, parent_2 = self.select_parents()
-            if self.strategy == "local_discrete_recombine":
-                child = self.local_discrete_recombine(parent_1, parent_2)
-            elif self.strategy == "local_intermediate_recombine":
-                child = self.local_intermediate_recombine(parent_1, parent_2)
+            if self.recombination_strategy == "discrete_recombination":
+                child = self.discrete_recombination(parent_1, parent_2)
+            elif self.recombination_strategy == "intermediate_recombine":
+                child = self.intermediate_recombine(parent_1, parent_2)
             self.children.append(child)
 
     def apply_mutations(self):
@@ -122,9 +122,11 @@ class EvolutionStrategy:
                 last_500 = np.abs(history[gen-1][1]-history[gen-500][1])
                 if verbose == 1:
                     print "\tfitness difference within last 500 generations: %.10f" % last_500
-        print "time to convergence: %.0fs" % ((time.time()-t0))
-        return history
+        elapsed_time = time.time()-t0
+        print "time to convergence: %.0fs" % elapsed_time
+        return (history, elapsed_time, gen)
 
 if __name__ == "__main__":
-    es = EvolutionStrategy(strategy="local_intermediate_recombine")
+    es = EvolutionStrategy(recombination_strategy="intermediate_recombine",
+                           stop_criteria=1e-7)
     history = es.run(verbose=1)

@@ -1,4 +1,5 @@
 from evolution_strategy import TwoMemberEvolutionStrategy as ES
+from alternate_evolution_strategy import EvolutionStrategy
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
@@ -20,7 +21,25 @@ def generate_configurations():
                 configs.append(config)
     return configs
 
-def generate_statistics():
+def get_evolution_configurations():
+    # gens = [5000, 10000, 15000]
+    recombination_strategies = ["discrete_recombination", "intermediate_recombine"]
+    learning_rates = [(1./np.sqrt(30)), np.sqrt(30)]
+    pop_children = [(30,200), (60,400)]
+    configs = []
+    for learning_rate in learning_rates:
+        for recombination_strategy in recombination_strategies:
+            for pc in pop_children:
+                config = {
+                    "recombination_strategy": recombination_strategy,
+                    "learning_rate": learning_rate,
+                    "population_size": pc[0],
+                    "num_children": pc[1]
+                }
+                configs.append(config)
+    return configs
+
+def one_plus_one_es_analytics():
     configs = generate_configurations()
     df_rows = []
     for config in configs:
@@ -44,5 +63,27 @@ def generate_statistics():
     with open("table.html", "w") as outfile:
         outfile.write(df.to_html())
 
+def evolution_strategy_analytics(N=10):
+    configs = get_evolution_configurations()
+    df_rows = []
+    for config in configs:
+        rows = []
+        for i in xrange(N):
+            es = EvolutionStrategy(
+                recombination_strategy=config["recombination_strategy"],
+                population_size=config["population_size"],
+                learning_rate=config["learning_rate"],
+                num_children=config["num_children"]
+                )
+            history, elapsed_time, generations = es.run(verbose=1)
+            fitness_history = pd.Series(t[1] for t in history)k
+            best = fitness_history.min()
+            mean = fitness_history.mean()
+            std = fitness_history.std()
+            row = (best, mean, std, elapsed_time, generations)
+            rows.append(row)
+        df = pd.DataFrame(rows, columns=["best", "mean", "std", "elapsed_time", "generations"])
+
+
 if __name__ == "__main__":
-    generate_statistics()
+    one_plus_one_es_analytics()
